@@ -10,7 +10,9 @@ def main():
 
     if content:
         logger.info("Content fetched successfully. Sending to OpenAI for summarization...")
-        summary = summarize_text(content)
+        # summary = summarize_text(content, engine="openai")
+        summary = summarize_text(content, engine="ollama")
+
 
         if summary:
             logger.info("Summary generated successfully.")
