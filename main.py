@@ -10,8 +10,9 @@ def main():
 
     if content:
         logger.info("Content fetched successfully. Sending to OpenAI for summarization...")
-        # summary = summarize_text(content, engine="openai")
-        summary = summarize_text(content, engine="ollama")
+        # summary = summarize_text(content,'gpt-4o-mini', engine="openai")
+        # summary = summarize_text(content, 'deepseek-r1:1.5B', engine="ollama-lib")
+        summary = summarize_text(content, 'deepseek-r1:1.5B', engine="ollama-api")
 
 
         if summary:
