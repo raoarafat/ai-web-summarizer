@@ -1,18 +1,19 @@
 import openai  # type: ignore
 import ollama
+import requests
 from utils.config import Config
+
+# Local Ollama API endpoint
+OLLAMA_API = "http://127.0.0.1:11434/api/chat"
 
 # Initialize OpenAI client with API key
 client = openai.Client(api_key=Config.OPENAI_API_KEY)
 
-# Ollama model configuration
-OLLAMA_MODEL = "deepseek-r1:1.5B"
-
-def summarize_with_openai(text):
+def summarize_with_openai(text, model):
     """Summarize text using OpenAI's GPT model."""
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes web pages."},
                 {"role": "user", "content": f"Summarize the following text: {text}"}
@@ -20,43 +21,65 @@ def summarize_with_openai(text):
             max_tokens=300,
             temperature=0.7
         )
-        summary = response.choices[0].message.content
-        return summary
+        return response.choices[0].message.content
     except Exception as e:
         print(f"Error during OpenAI summarization: {e}")
         return None
 
-def summarize_with_ollama(text):
-    """Summarize text using Ollama's deepseek-r1 model."""
+def summarize_with_ollama_lib(text, model):
+    """Summarize text using Ollama Python library."""
     try:
         messages = [
             {"role": "system", "content": "You are a helpful assistant that summarizes web pages."},
             {"role": "user", "content": f"Summarize the following text: {text}"}
         ]
-        response = ollama.chat(model=OLLAMA_MODEL, messages=messages)
-        summary = response['message']['content']
-        return summary
+        response = ollama.chat(model=model, messages=messages)
+        return response['message']['content']
     except Exception as e:
         print(f"Error during Ollama summarization: {e}")
         return None
 
-def summarize_text(text, engine="openai"):
-    """Generic function to summarize text using the specified engine (openai/ollama)."""
+def summarize_with_ollama_api(text, model):
+    """Summarize text using local Ollama API."""
+    try:
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant that summarizes web pages."},
+                {"role": "user", "content": f"Summarize the following text: {text}"}
+            ],
+            "stream": False  # Set to True for streaming responses
+        }
+        response = requests.post(OLLAMA_API, json=payload)
+        response_data = response.json()
+        return response_data.get('message', {}).get('content', 'No summary generated')
+    except Exception as e:
+        print(f"Error during Ollama API summarization: {e}")
+        return None
+
+def summarize_text(text, model, engine="openai"):
+    """Generic function to summarize text using the specified engine (openai/ollama-lib/ollama-api)."""
     if engine == "openai":
-        return summarize_with_openai(text)
-    elif engine == "ollama":
-        return summarize_with_ollama(text)
+        return summarize_with_openai(text, model)
+    elif engine == "ollama-lib":
+        return summarize_with_ollama_lib(text, model)
+    elif engine == "ollama-api":
+        return summarize_with_ollama_api(text, model)
     else:
-        print("Invalid engine specified. Use 'openai' or 'ollama'.")
+        print("Invalid engine specified. Use 'openai', 'ollama-lib', or 'ollama-api'.")
         return None
 
 if __name__ == "__main__":
     sample_text = "Artificial intelligence (AI) is intelligence demonstrated by machines, as opposed to the natural intelligence displayed by animals and humans."
 
     # Summarize using OpenAI
-    openai_summary = summarize_text(sample_text, engine="openai")
+    openai_summary = summarize_text(sample_text, model="gpt-3.5-turbo", engine="openai")
     print("OpenAI Summary:", openai_summary)
 
-    # Summarize using Ollama
-    ollama_summary = summarize_text(sample_text, engine="ollama")
-    print("Ollama Summary:", ollama_summary)
+    # Summarize using Ollama Python library
+    ollama_lib_summary = summarize_text(sample_text, model="deepseek-r1:1.5B", engine="ollama-lib")
+    print("Ollama Library Summary:", ollama_lib_summary)
+
+    # Summarize using local Ollama API
+    ollama_api_summary = summarize_text(sample_text, model="deepseek-r1:1.5B", engine="ollama-api")
+    print("Ollama API Summary:", ollama_api_summary)
